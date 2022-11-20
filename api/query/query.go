@@ -6,16 +6,28 @@ package query
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
+// SummaryResult is the format of the data from summary files generated with the
+// newest aggregation method.
+type SummaryResult struct {
+	// Status represents the 1-2 character abbreviation for the status of the test.
+	Status string `json:"s"`
+	// Counts represents the subtest counts (passes and total).
+	Counts []int `json:"c"`
+}
+
 // summary is the golang type for the JSON format in pass/total summary files.
-type summary map[string][]int
+type summary map[string]SummaryResult
 
 type queryHandler struct {
 	store      shared.Datastore
@@ -23,6 +35,9 @@ type queryHandler struct {
 	client     *http.Client
 	logger     shared.Logger
 }
+
+// ErrBadSummaryVersion occurs when the summary file URL is not the correct version.
+var ErrBadSummaryVersion = errors.New("invalid/unsupported summary version")
 
 func (qh queryHandler) processInput(w http.ResponseWriter, r *http.Request) (*shared.QueryFilter, shared.TestRuns, []summary, error) {
 	filters, err := shared.ParseQueryFilterParams(r.URL.Query())
@@ -44,6 +59,31 @@ func (qh queryHandler) processInput(w http.ResponseWriter, r *http.Request) (*sh
 	}
 
 	return &filters, testRuns, summaries, nil
+}
+
+func (qh queryHandler) validateSummaryVersions(v url.Values, logger shared.Logger) error {
+	filters, err := shared.ParseQueryFilterParams(v)
+	if err != nil {
+		return err
+	}
+	testRuns, _, err := qh.getRunsAndFilters(filters)
+	if err != nil {
+		return err
+	}
+
+	for _, testRun := range testRuns {
+		summaryURL := shared.GetResultsURL(testRun, "")
+		if !qh.summaryIsValid(summaryURL) {
+			logger.Infof("summary URL has invalid suffix: %s", summaryURL)
+			return fmt.Errorf("%w for URL %s", ErrBadSummaryVersion, summaryURL)
+		}
+	}
+	return nil
+}
+
+func (qh queryHandler) summaryIsValid(summaryURL string) bool {
+	// All new summary URLs end with "-summary_v2.json.gz". Any others are invalid.
+	return strings.HasSuffix(summaryURL, "-summary_v2.json.gz")
 }
 
 func (qh queryHandler) getRunsAndFilters(in shared.QueryFilter) (shared.TestRuns, shared.QueryFilter, error) {
@@ -93,12 +133,13 @@ func (qh queryHandler) loadSummaries(testRuns shared.TestRuns) ([]summary, error
 			defer wg.Done()
 
 			var data []byte
-			s := make(summary)
+			s := summary{}
 			data, loadErr := qh.loadSummary(testRun)
 			if err == nil && loadErr != nil {
 				err = fmt.Errorf("Failed to load test run %v: %s", testRun.ID, loadErr.Error())
 				return
 			}
+			// Try to unmarshal the json using the new aggregation structure.
 			marshalErr := json.Unmarshal(data, &s)
 			if err == nil && marshalErr != nil {
 				err = marshalErr
@@ -113,15 +154,15 @@ func (qh queryHandler) loadSummaries(testRuns shared.TestRuns) ([]summary, error
 }
 
 func (qh queryHandler) loadSummary(testRun shared.TestRun) ([]byte, error) {
-	mkey := getRedisKey(testRun)
+	mkey := getSummaryFileRedisKey(testRun)
 	url := shared.GetResultsURL(testRun, "")
 	var data []byte
 	err := qh.dataSource.Get(mkey, url, &data)
 	return data, err
 }
 
-func getRedisKey(testRun shared.TestRun) string {
-	return "RESULTS_SUMMARY-" + strconv.FormatInt(testRun.ID, 10)
+func getSummaryFileRedisKey(testRun shared.TestRun) string {
+	return "RESULTS_SUMMARY_v2-" + strconv.FormatInt(testRun.ID, 10)
 }
 
 func isRequestCacheable(r *http.Request) bool {

@@ -15,7 +15,6 @@ import '../node_modules/@polymer/paper-icon-button/paper-icon-button.js';
 import '../node_modules/@polymer/polymer/lib/elements/dom-if.js';
 import { html } from '../node_modules/@polymer/polymer/polymer-element.js';
 import '../views/wpt-404.js';
-import '../views/wpt-interop.js';
 import '../views/wpt-results.js';
 
 class WPTApp extends PathInfo(WPTFlags(TestRunsUIBase)) {
@@ -67,7 +66,7 @@ class WPTApp extends PathInfo(WPTFlags(TestRunsUIBase)) {
         }
       </style>
 
-      <app-location route="{{route}}" url-space-regex="^/(results|interop)/"></app-location>
+      <app-location route="{{route}}" url-space-regex="^/(results)/"></app-location>
       <app-route route="{{route}}" pattern="/:page" data="{{routeData}}" tail="{{subroute}}"></app-route>
 
       <wpt-header path="[[encodedPath]]" query="[[query]]" user="[[user]]" is-triage-mode="{{isTriageMode}}"></wpt-header>
@@ -154,12 +153,9 @@ class WPTApp extends PathInfo(WPTFlags(TestRunsUIBase)) {
                      test-runs="{{testRuns}}"
                      test-paths="{{testPaths}}"
                      search-results="{{searchResults}}"
-                     is-triage-mode="[[isTriageMode]]"></wpt-results>
-
-        <wpt-interop name="interop"
-                     is-loading="{{interopLoading}}"
-                     structured-search="[[structuredSearch]]"
-                     path="{{subroute.path}}"></wpt-interop>
+                     subtest-row-count={{subtestRowCount}}
+                     is-triage-mode="[[isTriageMode]]"
+                     view="[[view]]"></wpt-results>
 
         <wpt-404 name="404" ></wpt-404>
       </iron-pages>
@@ -185,7 +181,6 @@ class WPTApp extends PathInfo(WPTFlags(TestRunsUIBase)) {
       path: String,
       testPaths: Set,
       structuredSearch: Object,
-      interopLoading: Boolean,
       resultsLoading: Boolean,
       editable: {
         type: Boolean,
@@ -193,13 +188,14 @@ class WPTApp extends PathInfo(WPTFlags(TestRunsUIBase)) {
       },
       isLoading: {
         type: Boolean,
-        computed: '_computeIsLoading(interopLoading, resultsLoading)',
+        computed: '_computeIsLoading(resultsLoading)',
       },
       searchResults: Array,
       resultsTotalsRangeMessage: {
         type: String,
-        computed: 'computeResultsTotalsRangeMessage(page, path, searchResults, shas, productSpecs, to, from, maxCount, labels, master, runIds)',
+        computed: 'computeResultsTotalsRangeMessage(page, path, searchResults, shas, productSpecs, to, from, maxCount, labels, master, runIds, subtestRowCount)',
       },
+      subtestRowCount: Number,
       bsfBannerMessage: {
         type: String,
         computed: 'computeBSFBannerMessage(isBSFCollapsed)',
@@ -241,13 +237,11 @@ class WPTApp extends PathInfo(WPTFlags(TestRunsUIBase)) {
       this.isBSFCollapsed = !this.isBSFCollapsed;
       // Record hide/open actions on the BSF graph. Currently, we only
       // show it on the homepage.
-      if ('ga' in window) {
-        window.ga('send', {
-          hitType: 'event',
-          eventCategory: 'bsf',
-          eventAction: 'visibility change',
-          eventLabel: this.path,
-          eventValue: this.isBSFCollapsed ? 1 : 0
+      if ('gtag' in window) {
+        window.gtag('event', 'visibility change', {
+          'event_category': 'bsf',
+          'event_label': this.path,
+          'value': this.isBSFCollapsed ? 1 : 0
         });
       }
       this.setLocalStorageFlag(this.isBSFCollapsed, 'isBSFCollapsed');
@@ -274,13 +268,11 @@ class WPTApp extends PathInfo(WPTFlags(TestRunsUIBase)) {
         return;
       }
 
-      if ('ga' in window) {
-        window.ga('send', {
-          hitType: 'event',
-          eventCategory: 'bsf',
-          eventAction: 'hover',
-          eventLabel: this.path,
-          eventValue: duration
+      if ('gtag' in window) {
+        window.gtag('event', 'hover', {
+          'event_category': 'bsf',
+          'event_label': this.path,
+          'value': duration
         });
       }
       this.bsfStartTime = null;
@@ -340,8 +332,8 @@ class WPTApp extends PathInfo(WPTFlags(TestRunsUIBase)) {
     return this.shadowRoot.querySelector(`wpt-${this.page}`);
   }
 
-  _computeIsLoading(interopLoading, resultsLoading) {
-    return interopLoading || resultsLoading;
+  _computeIsLoading(resultsLoading) {
+    return resultsLoading;
   }
 
   handleKeyDown(e) {
@@ -389,21 +381,23 @@ class WPTApp extends PathInfo(WPTFlags(TestRunsUIBase)) {
     return true;
   }
 
-  computeResultsTotalsRangeMessage(page, path, searchResults, shas, productSpecs, from, to, maxCount, labels, master, runIds) {
+  computeResultsTotalsRangeMessage(page, path, searchResults, shas, productSpecs, from, to, maxCount, labels, master, runIds, subtestRowCount) {
     const msg = super.computeResultsRangeMessage(shas, productSpecs, from, to, maxCount, labels, master, runIds);
     if (page === 'results' && searchResults) {
+      // If the view is displaying subtests of a single test,
+      // we show the number of rows excluding Harness duration.
+      if (this.computePathIsATestFile(path)) {
+        if (!subtestRowCount || subtestRowCount === 1) {
+          return msg;
+        }
+        return msg.replace('Showing ', `Showing ${subtestRowCount} subtests from `);
+      }
       let subtests = 0, tests = 0;
       for (const r of searchResults) {
         if (r.test.startsWith(this.path)) {
           tests++;
           subtests += Math.max(...r.legacy_status.map(s => s.total));
         }
-      }
-      if (this.computePathIsATestFile(path)) {
-        if (subtests <= 1) {
-          return msg;
-        }
-        return msg.replace('Showing ', `Showing ${subtests} subtests from `);
       }
       let folder = '';
       if (path && path.length > 1) {

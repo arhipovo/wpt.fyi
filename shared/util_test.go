@@ -15,7 +15,7 @@ import (
 const shortSHA = "abcdef0123"
 const resultsURLBase = "https://storage.googleapis.com/wptd/" + shortSHA + "/"
 const product = "chrome-63.0-linux"
-const resultsURL = resultsURLBase + "/" + product + "-summary.json.gz"
+const resultsURL = resultsURLBase + "/" + product + "-summary_v2.json.gz"
 
 func TestMapStringKeys(t *testing.T) {
 	m := map[string]int{"foo": 1}

@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/google/go-github/v33/github"
+	"github.com/google/go-github/v47/github"
 	"gopkg.in/yaml.v3"
 )
 
@@ -108,7 +108,7 @@ func (tm triageMetadata) getTree(ref *github.Reference, triagedMetadataMap map[s
 func (tm triageMetadata) pushCommit(ref *github.Reference, tree *github.Tree) (err error) {
 	client := tm.githubClient
 	// Get the parent commit to attach the commit to.
-	parent, _, err := client.Repositories.GetCommit(tm.ctx, tm.sourceOwner, tm.sourceRepo, *ref.Object.SHA)
+	parent, _, err := client.Repositories.GetCommit(tm.ctx, tm.sourceOwner, tm.sourceRepo, *ref.Object.SHA, &github.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -198,7 +198,7 @@ func addToFiles(metadata MetadataResults, filesMap map[string]Metadata, logger L
 			existingMetadata := filesMap[folderName]
 			hasMerged := false
 			for index, existingLink := range existingMetadata.Links {
-				if link.URL == existingLink.URL && link.Product.MatchesProductSpec(existingLink.Product) {
+				if link.URL == existingLink.URL && link.Product.MatchesProductSpec(existingLink.Product) && link.Label == existingLink.Label {
 					// Add new MetadataResult to the existing link.
 					filesMap[folderName].Links[index].Results = append(existingMetadata.Links[index].Results, link.Results...)
 					hasMerged = true

@@ -1,5 +1,5 @@
 # vim: set expandtab sw=4
-FROM golang:1.14-buster
+FROM golang:1.16-buster
 
 # Create a non-priviledged user to run browsers as (Firefox and Chrome do not
 # like to run as root).
@@ -28,7 +28,7 @@ RUN apt-get update -qqy && apt-get install -qqy --no-install-suggests \
 RUN echo "root ALL=(ALL:ALL) ALL" > /etc/sudoers
 
 # Node LTS
-RUN curl -sL https://deb.nodesource.com/setup_10.x | bash - && \
+RUN curl -sL https://deb.nodesource.com/setup_16.x | bash - && \
     apt-get install -qqy nodejs
 
 # Google Cloud SDK

@@ -15,7 +15,6 @@
 SHELL := /bin/bash
 # WPTD_PATH will have a trailing slash, e.g. /home/user/wpt.fyi/
 WPTD_PATH := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-WPT_PATH := $(dir $(WPTD_PATH)../)
 NODE_SELENIUM_PATH := $(WPTD_PATH)webapp/node_modules/selenium-standalone/.selenium/
 FIREFOX_PATH := /usr/bin/firefox
 CHROME_PATH := /usr/bin/google-chrome
@@ -63,8 +62,8 @@ go_lint: golint go_test_tag_lint
 
 go_test_tag_lint:
 	@ # Printing a list of test files without +build tag, asserting empty...
-	@TAGLESS=$$(grep -PL '\/\/\s?\+build !?(small|medium|large)' $(GO_TEST_FILES)); \
-	if [ -n "$$TAGLESS" ]; then echo -e "Files are missing +build tags:\n$$TAGLESS" && exit 1; fi
+	@TAGLESS=$$(grep -PL '\/\/(\s?\+build|go:build) !?(small|medium|large|cloud)' $(GO_TEST_FILES)); \
+	if [ -n "$$TAGLESS" ]; then echo -e "Files are missing '// +build TAG' or '//go:build TAG' tags:\n$$TAGLESS" && exit 1; fi
 
 go_test: go_small_test go_medium_test
 
@@ -85,6 +84,14 @@ go_firefox_test: firefox geckodriver
 
 go_chrome_test: chrome chromedriver
 	make _go_webdriver_test BROWSER=chrome
+
+go_cloud_test: gcloud_login
+	gcloud config set project wptdashboard-staging; \
+	if [[ -f "$(WPTD_PATH)client-secret.json" ]]; then \
+		echo "Running with client-secret.json credentials instead of possible system credentials. This should happen for CI runs."; \
+		export GOOGLE_APPLICATION_CREDENTIALS="$(WPTD_PATH)client-secret.json"; \
+	fi ; \
+	GOOGLE_CLOUD_PROJECT=wptdashboard-staging GAE_SERVICE=test GAE_VERSION=1 go test -tags=cloud $(VERBOSE) $(FLAGS) ./...
 
 puppeteer_chrome_test: go_build dev_appserver_deps webdriver_node_deps
 	cd webdriver; npm test
@@ -119,8 +126,9 @@ chrome: wget
 	if [[ -z "$$(which google-chrome)" ]]; then \
 		ARCHIVE=google-chrome-stable_current_amd64.deb; \
 		wget -q https://dl.google.com/linux/direct/$${ARCHIVE}; \
+		sudo apt-get update; \
 		sudo dpkg --install $${ARCHIVE} 2>/dev/null || true; \
-		sudo apt-get install --fix-broken -qqy; \
+		sudo apt-get install --fix-broken --fix-missing -qqy; \
 		sudo dpkg --install $${ARCHIVE} 2>/dev/null; \
 	fi
 
@@ -214,7 +222,7 @@ inotifywait:
 
 node: curl gpg
 	if [[ "$$(which node)" == "" ]]; then \
-		curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -; \
+		curl -sL https://deb.nodesource.com/setup_16.x | sudo -E bash -; \
 		sudo apt-get install -qqy nodejs; \
 	fi
 

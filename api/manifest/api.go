@@ -14,7 +14,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/google/go-github/v33/github"
+	"github.com/google/go-github/v47/github"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 

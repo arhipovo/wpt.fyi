@@ -252,8 +252,8 @@ class WPTReportTest(unittest.TestCase):
             }
         ]}
         self.assertEqual(r.summarize(), {
-            '/js/with-statement.html': [2, 3],
-            '/js/isNaN.html': [3, 4]
+            '/js/with-statement.html': {'s': 'O', 'c': [1, 2]},
+            '/js/isNaN.html': {'s': 'O', 'c': [2, 3]}
         })
 
     def test_summarize_zero_results(self):
@@ -305,8 +305,8 @@ class WPTReportTest(unittest.TestCase):
             }
         ]}
         self.assertEqual(r.summarize(), {
-            '/ref/reftest.html': [1, 1],
-            '/ref/reftest-fail.html': [0, 1]
+            '/ref/reftest.html': {'s': 'P', 'c': [0, 0]},
+            '/ref/reftest-fail.html': {'s': 'F', 'c': [0, 0]}
         })
 
     def test_each_result(self):
@@ -392,7 +392,7 @@ class WPTReportTest(unittest.TestCase):
 
         self.assertTrue(os.path.isfile(os.path.join(
             self.tmp_dir, revision,
-            'firefox-59.0-linux-0123456789-summary.json.gz'
+            'firefox-59.0-linux-0123456789-summary_v2.json.gz'
         )))
         self.assertTrue(os.path.isfile(os.path.join(
             self.tmp_dir, revision,
@@ -530,7 +530,7 @@ class WPTReportTest(unittest.TestCase):
         r.hashsum = lambda: 'afa59408e1797c7091d7e89de5561612f7da440d'
         self.assertEqual(r.sha_summary_path,
                          '0bdaaf9c1622ca49eb140381af1ece6d8001c934/'
-                         'firefox-59.0-linux-afa59408e1-summary.json.gz')
+                         'firefox-59.0-linux-afa59408e1-summary_v2.json.gz')
 
     def test_normalize_version(self):
         r = WPTReport()

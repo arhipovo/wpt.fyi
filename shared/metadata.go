@@ -35,7 +35,8 @@ type MetadataLinks []MetadataLink
 // filtered by product and a specific test.
 type MetadataLink struct {
 	Product ProductSpec          `yaml:"product,omitempty" json:"product,omitempty"`
-	URL     string               `yaml:"url"     json:"url"`
+	URL     string               `yaml:"url,omitempty"     json:"url"`
+	Label   string               `yaml:"label,omitempty"  json:"label,omitempty"`
 	Results []MetadataTestResult `yaml:"results" json:"results,omitempty"`
 }
 
@@ -116,6 +117,7 @@ func addResponseLink(fullTestName string, link MetadataLink, result MetadataTest
 	newLink := MetadataLink{
 		Product: link.Product,
 		URL:     link.URL,
+		Label:   link.Label,
 	}
 	if result.SubtestName != nil || result.Status != nil {
 		newLink.Results = []MetadataTestResult{
@@ -142,12 +144,8 @@ func constructMetadataResponse(productSpecs ProductSpecs, includeTestLevel bool,
 			for _, result := range link.Results {
 				//TODO(kyleju): Concatenate test path on WPT Metadata repository instead of here.
 				fullTestName := GetWPTTestPath(folderPath, result.TestPath)
-
-				if link.Product.BrowserName == "" {
-					if includeTestLevel {
-						addResponseLink(fullTestName, link, result, res)
-					}
-					break
+				if link.Product.BrowserName == "" && includeTestLevel {
+					addResponseLink(fullTestName, link, result, res)
 				}
 
 				// Find any matching product for this link result (there can be at most one).
@@ -169,11 +167,33 @@ func PrepareLinkFilter(metadata MetadataResults) map[string][]string {
 	metadataMap := make(map[string][]string)
 	for test, links := range metadata {
 		for _, link := range links {
+			if link.URL == "" {
+				continue
+			}
 			if urls, ok := metadataMap[test]; !ok {
 				metadataMap[test] = []string{link.URL}
 			} else {
 				metadataMap[test] = append(urls, link.URL)
 			}
+		}
+	}
+	return metadataMap
+}
+
+// PrepareTestLabelFilter maps a MetadataResult test name to its labels.
+func PrepareTestLabelFilter(metadata MetadataResults) map[string][]string {
+	metadataMap := make(map[string][]string)
+	for test, links := range metadata {
+		for _, link := range links {
+			if link.Label == "" {
+				continue
+			}
+			if labels, ok := metadataMap[test]; !ok {
+				metadataMap[test] = []string{link.Label}
+			} else {
+				metadataMap[test] = append(labels, link.Label)
+			}
+
 		}
 	}
 	return metadataMap

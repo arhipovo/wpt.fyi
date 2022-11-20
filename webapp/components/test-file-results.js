@@ -84,6 +84,11 @@ class TestFileResults extends WPTFlags(LoadingState(PathInfo(
         type: Array,
         computed: 'computeRows(resultsTable, onlyShowDifferences)'
       },
+      subtestRowCount: {
+        type: Number,
+        value: 0,
+        notify: true
+      },
       isTriageMode: Boolean,
       metadataMap: Object,
     };
@@ -189,7 +194,7 @@ class TestFileResults extends WPTFlags(LoadingState(PathInfo(
 
     // Set name for test-level status entry after subtests discovered.
     // Parameter is number of subtests.
-    resultsTable[0].name = this.statusName(resultsTable.length - 1);
+    resultsTable[0].name = this.statusName(resultsTable.length - 2);
     return resultsTable;
   }
 
@@ -263,10 +268,16 @@ class TestFileResults extends WPTFlags(LoadingState(PathInfo(
     });
   }
 
+  // Slice summary file URL to infer the URL path to get single test data.
   resultsURL(testRun, path) {
     path = this.encodeTestPath(path);
-    // This is relying on the assumption that result files end with '-summary.json.gz'.
-    const resultsBase = testRun.results_url.slice(0, testRun.results_url.lastIndexOf('-summary.json.gz'));
+    // This is relying on the assumption that result
+    // files end with '-summary.json.gz' or '-summary_v2.json.gz'.
+    let resultsSuffix = '-summary.json.gz';
+    if (!testRun.results_url.includes(resultsSuffix)) {
+      resultsSuffix = '-summary_v2.json.gz';
+    }
+    const resultsBase = testRun.results_url.slice(0, testRun.results_url.lastIndexOf(resultsSuffix));
     return `${resultsBase}${path}`;
   }
 
@@ -288,13 +299,24 @@ class TestFileResults extends WPTFlags(LoadingState(PathInfo(
   }
 
   computeRows(resultsTable, onlyShowDifferences) {
-    if (!resultsTable || !resultsTable.length || !onlyShowDifferences) {
-      return resultsTable;
+    let rows = resultsTable;
+    if (resultsTable && resultsTable.length && onlyShowDifferences) {
+      const [first, ...others] = resultsTable;
+      rows = [first, ...others.filter(r => {
+        return r.results[0].status !== r.results[1].status;
+      })];
     }
-    const [first, ...others] = resultsTable;
-    return [first, ...others.filter(r => {
-      return r.results[0].status !== r.results[1].status;
-    })];
+
+    // If displaying subtests of a single test, the first two rows will
+    // reflect TestHarness status and duration, so we don't count them
+    // when displaying the number of subtests in the blue banner.
+    if (rows.length > 2 && rows[1].name === 'Duration') {
+      this.subtestRowCount = rows.length - 2;
+    } else {
+      this.subtestRowCount = 0;
+    }
+
+    return rows;
   }
 }
 

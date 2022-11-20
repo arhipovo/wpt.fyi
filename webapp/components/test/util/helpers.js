@@ -23,7 +23,7 @@ const TEST_RUNS_DATA = [
     os_name: 'linux',
     os_version: '*',
     revision: '53c5bf648c',
-    results_url: 'https://storage.googleapis.com/wptd/53c5bf648c/chrome-63.0-linux-summary.json.gz',
+    results_url: 'https://storage.googleapis.com/wptd/53c5bf648c/chrome-63.0-linux-summary_v2.json.gz',
     created_at: '2018-01-09T15:47:03.949Z',
   },
   {
@@ -33,7 +33,7 @@ const TEST_RUNS_DATA = [
     os_name: 'windows',
     os_version: '10',
     revision: '03d67ae5d9',
-    results_url: 'https://storage.googleapis.com/wptd/03d67ae5d9/edge-15-windows-10-sauce-summary.json.gz',
+    results_url: 'https://storage.googleapis.com/wptd/03d67ae5d9/edge-15-windows-10-summary_v2.json.gz',
     created_at: '2018-01-17T10:11:24.678461Z',
   },
   {
@@ -43,7 +43,7 @@ const TEST_RUNS_DATA = [
     os_name: 'linux',
     os_version: '*',
     revision: '1f9c924a4b',
-    results_url: 'https://storage.googleapis.com/wptd/1f9c924a4b/firefox-57.0-linux-summary.json.gz',
+    results_url: 'https://storage.googleapis.com/wptd/1f9c924a4b/firefox-57.0-linux-summary_v2.json.gz',
     created_at: '2018-01-09T15:54:04.296Z',
   },
   {
@@ -53,7 +53,7 @@ const TEST_RUNS_DATA = [
     os_name: 'macos',
     os_version: '10.12',
     revision: '3b19057653',
-    results_url: 'https://storage.googleapis.com/wptd/3b19057653/safari-11.0-macos-10.12-sauce-summary.json.gz',
+    results_url: 'https://storage.googleapis.com/wptd/3b19057653/safari-11.0-macos-10.12-summary_v2.json.gz',
     created_at: '2018-01-01T17:59:48.129561Z',
   }
 ];

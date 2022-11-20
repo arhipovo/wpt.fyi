@@ -19,6 +19,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/go-github/v47/github"
+
 	mapset "github.com/deckarep/golang-set"
 )
 
@@ -511,7 +513,7 @@ func getDiffRenames(aeAPI AppEngineAPI, shaBefore, shaAfter string) map[string]s
 		log.Errorf("Failed to get github client: %s", err.Error())
 		return nil
 	}
-	comparison, _, err := githubClient.Repositories.CompareCommits(ctx, WPTRepoOwner, WPTRepoName, shaBefore, shaAfter)
+	comparison, _, err := githubClient.Repositories.CompareCommits(ctx, WPTRepoOwner, WPTRepoName, shaBefore, shaAfter, &github.ListOptions{})
 	if err != nil || comparison == nil {
 		log.Errorf("Failed to fetch diff for %s...%s: %s", CropString(shaBefore, 7), CropString(shaAfter, 7), err.Error())
 		return nil

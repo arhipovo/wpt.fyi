@@ -27,10 +27,6 @@ func RegisterRoutes() {
 
 	shared.AddRoute("/node_modules/{path:.*}", "components", componentsHandler)
 
-	// Test run results, viewed by pass-rate across the browsers
-	shared.AddRoute("/interop/", "interop", interopHandler)
-	shared.AddRoute("/interop/{path:.*}", "interop", interopHandler)
-
 	// A list of useful/insightful queries
 	shared.AddRoute("/insights", "insights", insightsHandler)
 
@@ -41,8 +37,8 @@ func RegisterRoutes() {
 	shared.AddRoute("/runs", "test-runs", testRunsHandler)
 	shared.AddRoute("/test-runs", "test-runs", testRunsHandler) // Legacy name
 
-	// Dashboard for the compat-2021 effort.
-	shared.AddRoute("/compat2021", "compat-2021", compat2021Handler)
+	// Dashboard for the interop effort, by year.
+	shared.AddRoute("/{name:(?:compat|interop-)}{year:[0-9]+}", "interop-dashboard", interopHandler)
 
 	// Admin-only manual results upload.
 	shared.AddRoute("/admin/results/upload", "admin-results-upload", adminUploadHandler)

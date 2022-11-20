@@ -47,21 +47,8 @@ class WPTHeader extends WPTFlags(PolymerElement) {
       header nav a {
         margin-right: 1em;
       }
-      #solidarity {
-        margin: -0.5em 0 0.5em 0;
-      }
-      #solidarity p {
-        width: 100%;
-        text-align: center;
-        padding: 1em;
-        color: white;
-        background: black;
-      }
     </style>
     <header>
-      <div id="solidarity">
-        <p>Black Lives Matter</p>
-      </div>
       <div>
         <h1>
           <img src="/static/logo.svg" alt="wpt.fyi logo">
@@ -76,9 +63,8 @@ class WPTHeader extends WPTFlags(PolymerElement) {
         <!-- TODO: handle onclick with wpt-results.navigate if available -->
         <a href="/">Latest Run</a>
         <a href="/runs">Recent Runs</a>
+        <a href="/interop-2022">&#10024;Interop 2022&#10024;</a>
         <a href="/insights">Insights</a>
-        <a href="/compat2021">&#10024;Compat 2021&#10024;</a>
-        <a href="/interop[[path]]?[[query]]">Interoperability</a>
         <template is="dom-if" if="[[processorTab]]">
           <a href="/status">Processor</a>
         </template>

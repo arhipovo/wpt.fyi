@@ -130,10 +130,12 @@ func TestBindExecute_TestNamePattern(t *testing.T) {
 	expectedResult := shared.SearchResult{
 		Test: matchingTestName,
 		LegacyStatus: []shared.LegacySearchRunResult{
-			shared.LegacySearchRunResult{
+			{
 				// Only matching test passes.
-				Passes: 1,
-				Total:  1,
+				Passes:        1,
+				Total:         1,
+				Status:        "",
+				NewAggProcess: true,
 			},
 		},
 	}
@@ -207,9 +209,11 @@ func TestBindExecute_SubtestNamePattern(t *testing.T) {
 			expectedResult := shared.SearchResult{
 				Test: "/a/b/c",
 				LegacyStatus: []shared.LegacySearchRunResult{
-					shared.LegacySearchRunResult{
-						Passes: testCase.Passes, // Only matches the subtest.
-						Total:  testCase.Total,
+					{
+						Passes:        testCase.Passes, // Only matches the subtest.
+						Total:         testCase.Total,
+						Status:        "",
+						NewAggProcess: true,
 					},
 				},
 			}
@@ -254,10 +258,12 @@ func TestBindExecute_TestPath(t *testing.T) {
 	expectedResult := shared.SearchResult{
 		Test: matchingPath,
 		LegacyStatus: []shared.LegacySearchRunResult{
-			shared.LegacySearchRunResult{
+			{
 				// Only matching test passes.
-				Passes: 1,
-				Total:  1,
+				Passes:        1,
+				Total:         1,
+				Status:        "",
+				NewAggProcess: true,
 			},
 		},
 	}
@@ -379,14 +385,18 @@ func TestBindExecute_TestStatus(t *testing.T) {
 			Test: match1Name,
 			LegacyStatus: []shared.LegacySearchRunResult{
 				// Run [0]: Chrome: match1Name status is FAIL: 0 / 1.
-				shared.LegacySearchRunResult{
-					Passes: 0,
-					Total:  1,
+				{
+					Passes:        0,
+					Total:         1,
+					Status:        "",
+					NewAggProcess: true,
 				},
 				// Run [1]: Safari: match1Name status is PASS: 1 / 1.
-				shared.LegacySearchRunResult{
-					Passes: 1,
-					Total:  1,
+				{
+					Passes:        1,
+					Total:         1,
+					Status:        "",
+					NewAggProcess: true,
 				},
 			},
 		},
@@ -395,16 +405,20 @@ func TestBindExecute_TestStatus(t *testing.T) {
 			// Run [0]: Chrome: match1Name.match2Sub status is FAIL,
 			//                  and no other subtests match: 0 / 1.
 			LegacyStatus: []shared.LegacySearchRunResult{
-				shared.LegacySearchRunResult{
-					Passes: 0,
-					Total:  1,
+				{
+					Passes:        0,
+					Total:         1,
+					Status:        "",
+					NewAggProcess: true,
 				},
 				// Run [1]: Safari: match1Name.match2Sub is missing;
 				//                  by logic used in legacy test summaries, result
 				//                  should be: 0 / 0.
-				shared.LegacySearchRunResult{
-					Passes: 0,
-					Total:  0,
+				{
+					Passes:        0,
+					Total:         0,
+					Status:        "",
+					NewAggProcess: false,
 				},
 			},
 		},
@@ -453,10 +467,12 @@ func TestBindExecute_Link(t *testing.T) {
 	expectedResult := shared.SearchResult{
 		Test: matchingTestName,
 		LegacyStatus: []shared.LegacySearchRunResult{
-			shared.LegacySearchRunResult{
+			{
 				// Only matching test passes.
-				Passes: 1,
-				Total:  1,
+				Passes:        1,
+				Total:         1,
+				Status:        "",
+				NewAggProcess: true,
 			},
 		},
 	}
@@ -509,10 +525,12 @@ func TestBindExecute_LinkWithWildcards(t *testing.T) {
 	expectedResult := shared.SearchResult{
 		Test: matchingTestName,
 		LegacyStatus: []shared.LegacySearchRunResult{
-			shared.LegacySearchRunResult{
+			{
 				// Only matching test passes.
-				Passes: 1,
-				Total:  1,
+				Passes:        1,
+				Total:         1,
+				Status:        "",
+				NewAggProcess: true,
 			},
 		},
 	}
@@ -562,10 +580,12 @@ func TestBindExecute_Triaged(t *testing.T) {
 	expectedResult := shared.SearchResult{
 		Test: matchingTestName,
 		LegacyStatus: []shared.LegacySearchRunResult{
-			shared.LegacySearchRunResult{
+			{
 				// Only matching test passes.
-				Passes: 1,
-				Total:  1,
+				Passes:        1,
+				Total:         1,
+				Status:        "",
+				NewAggProcess: true,
 			},
 		},
 	}
@@ -616,10 +636,195 @@ func TestBindExecute_TriagedWildcards(t *testing.T) {
 	expectedResult := shared.SearchResult{
 		Test: matchingTestName,
 		LegacyStatus: []shared.LegacySearchRunResult{
-			shared.LegacySearchRunResult{
+			{
 				// Only matching test passes.
-				Passes: 1,
-				Total:  1,
+				Passes:        1,
+				Total:         1,
+				Status:        "",
+				NewAggProcess: true,
+			},
+		},
+	}
+
+	assert.Equal(t, expectedResult, srs[0])
+}
+
+func TestBindExecute_QueryAndTestLabel(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	loader := NewMockReportLoader(ctrl)
+	idx, err := NewShardedWPTIndex(loader, testNumShards)
+	assert.Nil(t, err)
+
+	matchingTestName := "/a/b/c"
+	runs := mockTestRuns(loader, idx, []testRunData{
+		testRunData{
+			shared.TestRun{ID: 1},
+			&metrics.TestResultsReport{
+				Results: []*metrics.TestResults{
+					&metrics.TestResults{
+						Test:   matchingTestName,
+						Status: "PASS",
+					},
+					&metrics.TestResults{
+						Test:   "/d/e/f",
+						Status: "FAIL",
+					},
+				},
+			},
+		},
+	})
+	metadata := map[string][]string{
+		"/foo/bar/b.html": {"random"},
+		matchingTestName:  {"interop1", "INTEROP2"},
+		"/d/e/f":          {""},
+	}
+
+	// It is equivalent to searching "label:interop1 & label:interop2".
+	testlabel := query.And{[]query.ConcreteQuery{query.TestLabel{Label: "interop2", Metadata: metadata}, query.TestLabel{Label: "interop1", Metadata: metadata}}}
+	plan, err := idx.Bind(runs, testlabel)
+	assert.Nil(t, err)
+
+	res := plan.Execute(runs, query.AggregationOpts{})
+	srs, ok := res.([]shared.SearchResult)
+	assert.True(t, ok)
+
+	assert.Equal(t, 1, len(srs))
+	expectedResult := shared.SearchResult{
+		Test: matchingTestName,
+		LegacyStatus: []shared.LegacySearchRunResult{
+			{
+				// Only matching test passes.
+				Passes:        1,
+				Total:         1,
+				Status:        "",
+				NewAggProcess: true,
+			},
+		},
+	}
+
+	assert.Equal(t, expectedResult, srs[0])
+}
+
+func TestBindExecute_QueryOrTestLabel(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	loader := NewMockReportLoader(ctrl)
+	idx, err := NewShardedWPTIndex(loader, testNumShards)
+	assert.Nil(t, err)
+
+	matchingTestName := "/a/b/c"
+	runs := mockTestRuns(loader, idx, []testRunData{
+		testRunData{
+			shared.TestRun{ID: 1},
+			&metrics.TestResultsReport{
+				Results: []*metrics.TestResults{
+					&metrics.TestResults{
+						Test:   matchingTestName,
+						Status: "PASS",
+					},
+					&metrics.TestResults{
+						Test:   "/d/e/f",
+						Status: "PASS",
+					},
+				},
+			},
+		},
+	})
+	metadata := map[string][]string{
+		"/foo/bar/b.html": {"random"},
+		matchingTestName:  {"INTEROP2"},
+		"/d/e/f":          {"interop1"},
+	}
+
+	// It is equivalent to searching "label:interop1 | label:interop2".
+	testlabel := query.Or{[]query.ConcreteQuery{query.TestLabel{Label: "interop2", Metadata: metadata}, query.TestLabel{Label: "interop1", Metadata: metadata}}}
+	plan, err := idx.Bind(runs, testlabel)
+	assert.Nil(t, err)
+
+	res := plan.Execute(runs, query.AggregationOpts{})
+	srs, ok := res.([]shared.SearchResult)
+	assert.True(t, ok)
+
+	expectedResult := shared.SearchResult{
+		Test: matchingTestName,
+		LegacyStatus: []shared.LegacySearchRunResult{
+			{
+				// Only matching test passes.
+				Passes:        1,
+				Total:         1,
+				Status:        "",
+				NewAggProcess: true,
+			},
+		},
+	}
+
+	expectedResult1 := shared.SearchResult{
+		Test: "/d/e/f",
+		LegacyStatus: []shared.LegacySearchRunResult{
+			{
+				// Only matching test passes.
+				Passes:        1,
+				Total:         1,
+				Status:        "",
+				NewAggProcess: true,
+			},
+		},
+	}
+	assert.Equal(t, 2, len(srs))
+	assert.Contains(t, srs, expectedResult)
+	assert.Contains(t, srs, expectedResult1)
+}
+
+func TestBindExecute_TestLabel(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	loader := NewMockReportLoader(ctrl)
+	idx, err := NewShardedWPTIndex(loader, testNumShards)
+	assert.Nil(t, err)
+
+	matchingTestName := "/a/b/c"
+	runs := mockTestRuns(loader, idx, []testRunData{
+		testRunData{
+			shared.TestRun{ID: 1},
+			&metrics.TestResultsReport{
+				Results: []*metrics.TestResults{
+					&metrics.TestResults{
+						Test:   matchingTestName,
+						Status: "PASS",
+					},
+					&metrics.TestResults{
+						Test:   "/d/e/f",
+						Status: "FAIL",
+					},
+				},
+			},
+		},
+	})
+	metadata := map[string][]string{
+		"/foo/bar/b.html": {"random"},
+		matchingTestName:  {"interop1", "INTEROP2"},
+		"/d/e/f":          {""},
+	}
+
+	testlabel := query.TestLabel{Label: "interop2", Metadata: metadata}
+	plan, err := idx.Bind(runs, testlabel)
+	assert.Nil(t, err)
+
+	res := plan.Execute(runs, query.AggregationOpts{})
+	srs, ok := res.([]shared.SearchResult)
+	assert.True(t, ok)
+
+	assert.Equal(t, 1, len(srs))
+	expectedResult := shared.SearchResult{
+		Test: matchingTestName,
+		LegacyStatus: []shared.LegacySearchRunResult{
+			{
+				// Only matching test passes.
+				Passes:        1,
+				Total:         1,
+				Status:        "",
+				NewAggProcess: true,
 			},
 		},
 	}
@@ -678,8 +883,18 @@ func TestBindExecute_IsDifferent(t *testing.T) {
 	expectedResult := shared.SearchResult{
 		Test: "/d/e/f", // /a/b/c was the same, /d/e/f differed.
 		LegacyStatus: []shared.LegacySearchRunResult{
-			shared.LegacySearchRunResult{Passes: 0, Total: 1},
-			shared.LegacySearchRunResult{Passes: 1, Total: 1},
+			{
+				Passes:        0,
+				Total:         1,
+				Status:        "",
+				NewAggProcess: true,
+			},
+			{
+				Passes:        1,
+				Total:         1,
+				Status:        "",
+				NewAggProcess: true,
+			},
 		},
 	}
 
@@ -722,7 +937,12 @@ func TestBindExecute_IsTentative(t *testing.T) {
 	expectedResult := shared.SearchResult{
 		Test: "/a/b/c.tentative.html",
 		LegacyStatus: []shared.LegacySearchRunResult{
-			shared.LegacySearchRunResult{Passes: 1, Total: 1},
+			{
+				Passes:        1,
+				Total:         1,
+				Status:        "",
+				NewAggProcess: true,
+			},
 		},
 	}
 
@@ -765,7 +985,12 @@ func TestBindExecute_IsOptional(t *testing.T) {
 	expectedResult := shared.SearchResult{
 		Test: "/a/b/c.optional.html",
 		LegacyStatus: []shared.LegacySearchRunResult{
-			shared.LegacySearchRunResult{Passes: 1, Total: 1},
+			{
+				Passes:        1,
+				Total:         1,
+				Status:        "",
+				NewAggProcess: true,
+			},
 		},
 	}
 
@@ -829,8 +1054,18 @@ func TestBindExecute_MoreThan(t *testing.T) {
 	expectedResult := shared.SearchResult{
 		Test: "/a/b/c", // /a/b/c has 2 passes.
 		LegacyStatus: []shared.LegacySearchRunResult{
-			shared.LegacySearchRunResult{Passes: 1, Total: 1},
-			shared.LegacySearchRunResult{Passes: 1, Total: 1},
+			{
+				Passes:        1,
+				Total:         1,
+				Status:        "",
+				NewAggProcess: true,
+			},
+			{
+				Passes:        1,
+				Total:         1,
+				Status:        "",
+				NewAggProcess: true,
+			},
 		},
 	}
 
@@ -894,8 +1129,18 @@ func TestBindExecute_LessThan(t *testing.T) {
 	expectedResult := shared.SearchResult{
 		Test: "/d/e/f", // /a/b/c has 1 passes.
 		LegacyStatus: []shared.LegacySearchRunResult{
-			shared.LegacySearchRunResult{Passes: 0, Total: 1},
-			shared.LegacySearchRunResult{Passes: 1, Total: 1},
+			{
+				Passes:        0,
+				Total:         1,
+				Status:        "",
+				NewAggProcess: true,
+			},
+			{
+				Passes:        1,
+				Total:         1,
+				Status:        "",
+				NewAggProcess: true,
+			},
 		},
 	}
 
@@ -985,9 +1230,65 @@ func TestBindExecute_NotLink(t *testing.T) {
 	expectedResult := shared.SearchResult{
 		Test: "/d/e/f",
 		LegacyStatus: []shared.LegacySearchRunResult{
-			shared.LegacySearchRunResult{
-				Passes: 0,
-				Total:  1,
+			{
+				Passes:        0,
+				Total:         1,
+				Status:        "",
+				NewAggProcess: true,
+			},
+		},
+	}
+
+	assert.Equal(t, expectedResult, srs[0])
+}
+
+func TestBindExecute_HandleHarness(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	loader := NewMockReportLoader(ctrl)
+	idx, err := NewShardedWPTIndex(loader, testNumShards)
+	assert.Nil(t, err)
+
+	matchingTestName := "/a/b/c"
+	runs := mockTestRuns(loader, idx, []testRunData{
+		{
+			shared.TestRun{ID: 1},
+			&metrics.TestResultsReport{
+				Results: []*metrics.TestResults{
+					{
+						Test:   matchingTestName,
+						Status: "FAIL",
+					},
+					{
+						Test:   "/d/e/f",
+						Status: "OK",
+					},
+				},
+			},
+		},
+	})
+	metadata := map[string][]string{
+		"/foo/bar/b.html": {"https://bug.com/item", "https://bug.com/item", "https://bug.com/item"},
+		matchingTestName:  {"", "https://external.com/item", ""},
+	}
+
+	notQuery := query.Not{Arg: query.Link{Pattern: "external", Metadata: metadata}}
+	plan, err := idx.Bind(runs, notQuery)
+	assert.Nil(t, err)
+
+	res := plan.Execute(runs, query.AggregationOpts{})
+	srs, ok := res.([]shared.SearchResult)
+	assert.True(t, ok)
+
+	assert.Equal(t, 1, len(srs))
+	expectedResult := shared.SearchResult{
+		Test: "/d/e/f",
+		LegacyStatus: []shared.LegacySearchRunResult{
+			{
+				Passes:        0,
+				Total:         0,
+				Status:        "O",
+				NewAggProcess: true,
 			},
 		},
 	}

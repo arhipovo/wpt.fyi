@@ -20,7 +20,7 @@ import (
 )
 
 func TestGetRedisKey(t *testing.T) {
-	assert.Equal(t, "RESULTS_SUMMARY-1", getRedisKey(shared.TestRun{
+	assert.Equal(t, "RESULTS_SUMMARY_v2-1", getSummaryFileRedisKey(shared.TestRun{
 		ID: 1,
 	}))
 }
@@ -30,33 +30,33 @@ func TestLoadSummaries_success(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	urls := []string{
-		"https://example.com/1-summary.json.gz",
-		"https://example.com/2-summary.json.gz",
+		"https://example.com/1-summary_v2.json.gz",
+		"https://example.com/2-summary_v2.json.gz",
 	}
 	testRuns := []shared.TestRun{
-		shared.TestRun{
+		{
 			ID:         1,
 			ResultsURL: urls[0],
 		},
-		shared.TestRun{
+		{
 			ID:         2,
 			ResultsURL: urls[1],
 		},
 	}
 	keys := []string{
-		getRedisKey(testRuns[0]),
-		getRedisKey(testRuns[1]),
+		getSummaryFileRedisKey(testRuns[0]),
+		getSummaryFileRedisKey(testRuns[1]),
 	}
 
 	cachedStore := sharedtest.NewMockCachedStore(mockCtrl)
 	sh := unstructuredSearchHandler{queryHandler{dataSource: cachedStore}}
 	summaryBytes := [][]byte{
-		[]byte(`{"/a/b/c":[1,2]}`),
-		[]byte(`{"/x/y/z":[3,4]}`),
+		[]byte(`{"/a/b/c":{"s":"O","c":[1,2]}}`),
+		[]byte(`{"/x/y/z":{"s":"E","c":[3,4]}}`),
 	}
 	summaries := []summary{
-		map[string][]int{"/a/b/c": []int{1, 2}},
-		map[string][]int{"/x/y/z": []int{3, 4}},
+		map[string]SummaryResult{"/a/b/c": {Status: "O", Counts: []int{1, 2}}},
+		map[string]SummaryResult{"/x/y/z": {Status: "E", Counts: []int{3, 4}}},
 	}
 
 	bindCopySlice := func(i int) func(_, _, _ interface{}) {
@@ -80,28 +80,28 @@ func TestLoadSummaries_fail(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	urls := []string{
-		"https://example.com/1-summary.json.gz",
-		"https://example.com/2-summary.json.gz",
+		"https://example.com/1-summary_v2.json.gz",
+		"https://example.com/2-summary_v2.json.gz",
 	}
 	testRuns := []shared.TestRun{
-		shared.TestRun{
+		{
 			ID:         1,
 			ResultsURL: urls[0],
 		},
-		shared.TestRun{
+		{
 			ID:         2,
 			ResultsURL: urls[1],
 		},
 	}
 	keys := []string{
-		getRedisKey(testRuns[0]),
-		getRedisKey(testRuns[1]),
+		getSummaryFileRedisKey(testRuns[0]),
+		getSummaryFileRedisKey(testRuns[1]),
 	}
 
 	cachedStore := sharedtest.NewMockCachedStore(mockCtrl)
 	sh := unstructuredSearchHandler{queryHandler{dataSource: cachedStore}}
 	summaryBytes := [][]byte{
-		[]byte(`{"/a/b/c":[1,2]}`),
+		[]byte(`{"/a/b/c":{"s":"O","c":[1,2]}}`),
 	}
 
 	storeMiss := errors.New("No such summary file")
@@ -113,6 +113,19 @@ func TestLoadSummaries_fail(t *testing.T) {
 
 	_, err := sh.loadSummaries(testRuns)
 	assert.Contains(t, err.Error(), storeMiss.Error())
+}
+
+func TestSummaryIsValid_v1(t *testing.T) {
+	qh := queryHandler{}
+	// Summaries without the "_v2" suffix should not be used.
+	url := "https://example.com/invalid-summary.json.gz"
+	assert.False(t, qh.summaryIsValid(url))
+}
+
+func TestSummaryIsValid_v2(t *testing.T) {
+	qh := queryHandler{}
+	url := "https://example.com/valid-summary_v2.json.gz"
+	assert.True(t, qh.summaryIsValid(url))
 }
 
 func TestGetRunsAndFilters_default(t *testing.T) {
@@ -128,8 +141,8 @@ func TestGetRunsAndFilters_default(t *testing.T) {
 
 	runIDs := []int64{1, 2}
 	urls := []string{
-		"https://example.com/1-summary.json.gz",
-		"https://example.com/2-summary.json.gz",
+		"https://example.com/1-summary_v2.json.gz",
+		"https://example.com/2-summary_v2.json.gz",
 	}
 	chrome, _ := shared.ParseProductSpec("chrome")
 	edge, _ := shared.ParseProductSpec("edge")
@@ -178,8 +191,8 @@ func TestGetRunsAndFilters_specificRunIDs(t *testing.T) {
 
 	runIDs := []int64{1, 2}
 	urls := []string{
-		"https://example.com/1-summary.json.gz",
-		"https://example.com/2-summary.json.gz",
+		"https://example.com/1-summary_v2.json.gz",
+		"https://example.com/2-summary_v2.json.gz",
 	}
 	chrome, _ := shared.ParseProductSpec("chrome")
 	edge, _ := shared.ParseProductSpec("edge")

@@ -9,7 +9,10 @@ const DisplayNames = (() => {
   ['edge', 'edge-experimental'].forEach(n => m.set(n, 'Edge'));
   ['firefox', 'firefox-experimental'].forEach(n => m.set(n, 'Firefox'));
   ['safari', 'safari-experimental'].forEach(n => m.set(n, 'Safari'));
+  m.set('android_webview', 'WebView');
+  m.set('chrome_android', 'ChromeAndroid');
   m.set('deno', 'Deno');
+  m.set('flow', 'Flow');
   m.set('servo', 'Servo');
   m.set('uc', 'UC Browser');
   m.set('webkitgtk', 'WebKitGTK');
@@ -38,7 +41,7 @@ const versionPatterns = Object.freeze({
 });
 
 // The set of all browsers known to the wpt.fyi UI.
-const AllBrowserNames = Object.freeze(['chrome', 'deno', 'edge', 'firefox', 'safari', 'servo', 'webkitgtk']);
+const AllBrowserNames = Object.freeze(['android_webview', 'chrome_android', 'chrome', 'deno', 'edge', 'firefox', 'flow', 'safari', 'servo', 'webkitgtk']);
 
 // The list of default browsers used in cases where the user has not otherwise
 // chosen a set of browsers (e.g. which browsers to show runs for). Stored as
@@ -159,7 +162,16 @@ const ProductInfo = (superClass) => class extends superClass {
     // Special case for Chrome nightly, which is in fact Chromium ToT:
     if (name === 'chrome' && labels.has('nightly')) {
       name = 'chromium';
-    } else if (name !== 'deno' && name !== 'servo') {  // Deno & Servo do not have per-channel logos.
+
+    } else if (name === 'android_webview') {
+      return `/static/${name}.png`;
+
+    } else if (name === 'chrome_android') {
+      // TODO(kyle): A temporary workaround; remove this check when
+      // chrome_android is mapped to chrome on wptrunner.
+      return '/static/chrome_64x64.png';
+
+    } else if (name !== 'deno' && name !== 'flow' && name !== 'servo') {  // Deno, Flow & Servo do not have per-channel logos.
       let channel;
       const candidates = ['beta', 'dev', 'canary', 'nightly', 'preview'];
       for (const label of candidates) {
@@ -183,7 +195,7 @@ const ProductInfo = (superClass) => class extends superClass {
   }
 
   minorIsSignificant(browserName) {
-    return browserName === 'deno' || browserName === 'safari' || browserName === 'webkitgtk';
+    return browserName === 'deno' || browserName === 'flow' || browserName === 'safari' || browserName === 'webkitgtk';
   }
 
   /**

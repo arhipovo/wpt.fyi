@@ -49,7 +49,7 @@ suite('TestFileResultsTable', () => {
       test('Fail and error are colored identically', () => {
         assert.equal(tfrt.colorClass('FAIL'), tfrt.colorClass('ERROR'));
       });
-      test('Harness status is not equivalent to pass', () => {
+      test('Harness status OK is equivalent to pass', () => {
         // OK is used for harness status and should not be colored green.
         assert.notEqual(tfrt.colorClass('OK'), tfrt.colorClass('PASS'));
       });

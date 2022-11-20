@@ -14,7 +14,6 @@ the endpoints can be found in `routes.go`.
  - [/api/shas](#apishas)
  - [/api/diff](#apidiff)
  - [/api/results](#apiresults)
- - [/api/interop](#apiinterop)
  - [/api/manifest](#apimanifest)
  - [/api/search](#apisearch)
  - [/api/metadata](#apimetadata)
@@ -72,7 +71,7 @@ __`pr`__ (Beta): GitHub PR number. Shows runs for commits that belong to the PR.
         "os_version": "4.4",
         "revision": "2bd11b91d4",
         "full_revision_hash": "2bd11b91d490ddd5237bcb6d8149a7f25faaa101",
-        "results_url": "https://storage.googleapis.com/wptd/2bd11b91d4/chrome-stable-linux-summary.json.gz",
+        "results_url": "https://storage.googleapis.com/wptd/2bd11b91d4/chrome-stable-linux-summary_v2.json.gz",
         "created_at": "2018-06-05T08:27:30.627865Z",
         "raw_results_url": "https://storage.googleapis.com/wptd-results/2bd11b91d490ddd5237bcb6d8149a7f25faaa101/chrome_67.0.3396.62_linux_4.4/report.json"
       }
@@ -86,7 +85,7 @@ Gets a specific (single) TestRun metadata by its datastore ID.
 
 #### Example
 
-https://wpt.fyi/api/runs/5164888561287168
+https://wpt.fyi/api/runs/5184362994728960
 
 <details><summary><b>Example JSON</b></summary>
 
@@ -98,7 +97,7 @@ https://wpt.fyi/api/runs/5164888561287168
       "os_version": "4.4",
       "revision": "2bd11b91d4",
       "full_revision_hash": "2bd11b91d490ddd5237bcb6d8149a7f25faaa101",
-      "results_url": "https://storage.googleapis.com/wptd/2bd11b91d4/chrome-stable-linux-summary.json.gz",
+      "results_url": "https://storage.googleapis.com/wptd/2bd11b91d4/chrome-stable-linux-summary_v2.json.gz",
       "created_at": "2018-06-05T08:27:30.627865Z",
       "raw_results_url": "https://storage.googleapis.com/wptd-results/2bd11b91d490ddd5237bcb6d8149a7f25faaa101/chrome_67.0.3396.62_linux_4.4/report.json"
     }
@@ -129,7 +128,7 @@ https://wpt.fyi/api/run?sha=latest&product=chrome
       "os_version": "4.4",
       "revision": "2bd11b91d4",
       "full_revision_hash": "2bd11b91d490ddd5237bcb6d8149a7f25faaa101",
-      "results_url": "https://storage.googleapis.com/wptd/2bd11b91d4/chrome-stable-linux-summary.json.gz",
+      "results_url": "https://storage.googleapis.com/wptd/2bd11b91d4/chrome-stable-linux-summary_v2.json.gz",
       "created_at": "2018-06-05T08:27:30.627865Z",
       "raw_results_url": "https://storage.googleapis.com/wptd-results/2bd11b91d490ddd5237bcb6d8149a7f25faaa101/chrome_67.0.3396.62_linux_4.4/report.json"
     }
@@ -197,7 +196,7 @@ __`sha`__ : SHA[0:10] of the TestRun to fetch, or the keyword `latest`. Defaults
 
 https://wpt.fyi/api/results?product=chrome
 
-<details><summary><b>Example JSON</b> (from the summary.json.gz output)</summary>
+<details><summary><b>Example JSON</b> (from the summary_v2.json.gz output)</summary>
 
     {
       "/css/css-text/i18n/css3-text-line-break-opclns-213.html": [1, 1],
@@ -229,67 +228,6 @@ __`filter`__ : Differences to include in the summary.
  - `D` : Deleted - tests which are present before, but not after.
  - `C` : Changed - tests which are present before and after, but the results summary is different.
  - `U` : Unchanged - tests which are present before and after, and the results summary count is not different.
-
-### /api/interop
-
-Gets TestRun interoperability metadata, for the runs that would be fetched
-using the same params calling [/api/runs](#apiruns).
-
-Note that if a subset of browsers are selected, the most recent interoperability
-metadata that includes all of the browsers is return (which may have been
-computed from more than the returned browsers). For example,
-`/api/interop?product=chrome-67` will return interoperability metadata that
-includes the results from the latest run of Chrome 67.0.
-
-__Parameters__
-
-__`sha`__ : SHA[0:10] of the runs to get, or the keyword `latest`. Defaults to `latest`.
-
-__`product`__ : Product(s) to include (repeated param), e.g. `chrome` or `firefox-60`.
-
-__`labels`__: A comma-separated list of labels, e.g. `firefox,stable`; only runs with all
-the given labels will be returned. There are currently two kinds of labels supported,
-browser names (`chrome`, `edge`, `firefox`, `safari`) and release channels (`experimental`
-or `stable`).
-
-__`from`__ : RFC3339 timestamp, for which to include runs that occured after the given time.
-NOTE: Runs are sorted by `time_start` descending, so be wary when combining this parameter
-with the `max-count` parameter below.
-
-__`to`__: RFC3339 timestamp, for which to include runs that occured before the given time.
-
-__`max-count`__ : Maximum number of runs to get (for each browser). Maximum of 500.
-
-#### Examples
-
-- https://wpt.fyi/api/interop
-- https://wpt.fyi/api/interop?product=chrome-67
-- https://wpt.fyi/api/interop?label=experimental
-
-<details><summary><b>Example JSON</b></summary>
-
-    {
-      "test_runs": [
-        {
-          "id": 4829365045035008,
-          "browser_name": "chrome",
-          "browser_version": "69.0.3472.3 dev",
-          "os_name": "linux",
-          "os_version": "16.04",
-          "revision": "9f00a60d91",
-          "full_revision_hash": "9f00a60d91ba84e52dac35d6e08da2050774811d",
-          "results_url": "https://storage.googleapis.com/wptd-staging/9f00a60d91ba84e52dac35d6e08da2050774811d/chrome-69.0.3472.3_dev-linux-16.04-904a25b130-summary.json.gz",
-          "created_at": "2018-07-06T15:58:24.377035Z",
-          "raw_results_url": "https://storage.googleapis.com/wptd-results-staging/9f00a60d91ba84e52dac35d6e08da2050774811d/chrome-69.0.3472.3_dev-linux-16.04-904a25b130/report.json",
-          "labels": ["buildbot", "chrome", "experimental"]
-        } //, ...
-      ],
-      "start_time": "2018-07-06T18:42:27.478781Z",
-      "end_time": "2018-07-06T18:42:36.658149Z",
-      "url": "https://storage.googleapis.com/wptd-metrics-staging/1530902547-1530902556/pass-rates.json.gz"
-    }
-
-</details>
 
 ## Test Manifest
 
@@ -344,8 +282,8 @@ The high-level structure of the `v4` manifest is as follows:
 Uploads a wptreport to the dashboard to create the test run.
 
 This endpoint only accepts POST requests. Requests need to be authenticated via HTTP basic auth.
-Please contact [Ecosystem Infra](mailto:ecosystem-infra@chromium.org) if you want to register as a
-"test runner", to upload results.
+Please [file an issue](https://github.com/web-platform-tests/wpt.fyi/issues/new) if you want to
+register as a "test runner", to upload results.
 
 #### File payload
 
@@ -468,7 +406,7 @@ NOTE: structured search queries are not supported.
       "os_version": "16.04",
       "revision": "2dda7b8c10",
       "full_revision_hash": "2dda7b8c10c7566fa6167a32b09c85d51baf2a85",
-      "results_url": "https:\/\/storage.googleapis.com\/wptd-staging\/2dda7b8c10c7566fa6167a32b09c85d51baf2a85\/chrome-68.0.3440.106-linux-16.04-edf200244e-summary.json.gz",
+      "results_url": "https:\/\/storage.googleapis.com\/wptd-staging\/2dda7b8c10c7566fa6167a32b09c85d51baf2a85\/chrome-68.0.3440.106-linux-16.04-edf200244e-summary_v2.json.gz",
       "created_at": "2018-08-17T08:12:29.219847Z",
       "time_start": "2018-08-17T06:26:52.33Z",
       "time_end": "2018-08-17T07:50:09.155Z",
@@ -487,7 +425,7 @@ NOTE: structured search queries are not supported.
       "os_version": "16.04",
       "revision": "2dda7b8c10",
       "full_revision_hash": "2dda7b8c10c7566fa6167a32b09c85d51baf2a85",
-      "results_url": "https:\/\/storage.googleapis.com\/wptd-staging\/2dda7b8c10c7566fa6167a32b09c85d51baf2a85\/firefox-61.0.2-linux-16.04-75ff911c43-summary.json.gz",
+      "results_url": "https:\/\/storage.googleapis.com\/wptd-staging\/2dda7b8c10c7566fa6167a32b09c85d51baf2a85\/firefox-61.0.2-linux-16.04-75ff911c43-summary_v2.json.gz",
       "created_at": "2018-08-17T08:31:38.580221Z",
       "time_start": "2018-08-17T06:47:29.643Z",
       "time_end": "2018-08-17T08:15:18.612Z",
